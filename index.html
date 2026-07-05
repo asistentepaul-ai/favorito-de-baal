@@ -1,0 +1,1663 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2a1810">
+<title>El Favorito de BAAL — Pixel Art</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { width:100%; height:100%; overflow:hidden; background:#2a1810; font-family:"Courier New", monospace; user-select:none; touch-action:none; overscroll-behavior:none; }
+canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+
+/* ---- Pantalla de título ---- */
+#title { position:fixed; inset:0; z-index:30; background:rgba(20,12,8,.92); display:flex; flex-direction:column; align-items:center; justify-content:center; color:#f4d03f; text-align:center; transition:opacity .4s; padding:0 14px; }
+#title.hidden { opacity:0; pointer-events:none; }
+#title h1 { font-size:2em; letter-spacing:2px; text-shadow:4px 4px 0 #000; margin-bottom:8px; }
+#title .sub { color:#d9a066; margin-bottom:22px; font-size:.95em; }
+#title .ctrl { color:#fff; background:#3a2818; border:3px solid #7a5230; padding:12px 18px; line-height:1.9; font-size:.9em; box-shadow:6px 6px 0 rgba(0,0,0,.5); }
+#title .key { display:inline-block; background:#f4d03f; color:#2a1810; padding:1px 8px; font-weight:bold; border-radius:3px; margin:0 3px; }
+#title .record { margin-top:14px; color:#aed6f1; font-size:.9em; }
+#title .start { margin-top:20px; font-size:1.05em; animation:blink 1.1s steps(2) infinite; }
+@keyframes blink { 50% { opacity:.25; } }
+
+/* ---- HUD ---- */
+#hud { position:fixed; top:10px; left:10px; right:10px; z-index:10; display:none; gap:6px; pointer-events:none; flex-wrap:wrap; }
+#hud.show { display:flex; }
+.chip { background:#2a1810; color:#fff; border:2px solid #7a5230; padding:4px 9px; font-size:13px; font-weight:bold; box-shadow:3px 3px 0 rgba(0,0,0,.45); white-space:nowrap; }
+.chip b { color:#f4d03f; }
+.chip.danger { border-color:#e05548; animation:blink .8s steps(2) infinite; }
+.chip.danger b { color:#e05548; }
+
+/* ---- Objetivo ---- */
+#objective { position:fixed; bottom:12px; left:12px; z-index:10; display:none; background:#2a1810; border:2px solid #f4d03f; color:#fff; padding:7px 12px; font-size:13px; font-weight:bold; box-shadow:3px 3px 0 rgba(0,0,0,.45); max-width:340px; }
+#objective.show { display:block; }
+#objective .tag { color:#f4d03f; margin-right:6px; }
+
+/* ---- Prompt de acción ---- */
+#prompt { position:fixed; bottom:60px; left:50%; transform:translateX(-50%); z-index:10; display:none; background:#f4d03f; color:#2a1810; padding:7px 14px; font-size:14px; font-weight:bold; box-shadow:3px 3px 0 rgba(0,0,0,.5); max-width:90vw; text-align:center; }
+#prompt.show { display:block; }
+#prompt.deny { background:#5a4a3a; color:#e8d8c8; }
+#prompt .key { background:#2a1810; color:#f4d03f; padding:1px 7px; margin-right:7px; border-radius:3px; }
+#prompt.deny .key { display:none; }
+
+#hint { position:fixed; bottom:12px; right:12px; z-index:9; color:rgba(255,255,255,.45); font-size:12px; pointer-events:none; }
+
+/* ---- Aviso de tormenta ---- */
+#storm-banner { position:fixed; top:54px; left:50%; transform:translateX(-50%); z-index:12; display:none; background:#1a1a2e; color:#aed6f1; border:2px solid #5dade2; padding:8px 16px; font-size:14px; font-weight:bold; box-shadow:3px 3px 0 rgba(0,0,0,.5); }
+#storm-banner.show { display:block; animation:blink 1s steps(2) infinite; }
+
+/* ---- Botones de música y voz ---- */
+#musicbtn, #voicebtn { position:fixed; right:12px; z-index:12; width:42px; height:42px; background:#2a1810; color:#f4d03f; border:2px solid #7a5230; font-size:19px; display:none; align-items:center; justify-content:center; cursor:pointer; box-shadow:3px 3px 0 rgba(0,0,0,.45); }
+#musicbtn { top:52px; }
+#voicebtn { top:102px; }
+#musicbtn.show, #voicebtn.show { display:flex; }
+
+/* ---- Controles táctiles (móvil) ---- */
+#joystick { position:fixed; left:18px; bottom:18px; width:128px; height:128px; border-radius:50%; background:rgba(0,0,0,.35); border:3px solid rgba(244,208,63,.5); z-index:15; display:none; touch-action:none; }
+#joystick.show { display:block; }
+#joystick .stick { position:absolute; left:50%; top:50%; width:56px; height:56px; margin:-28px 0 0 -28px; border-radius:50%; background:rgba(244,208,63,.85); border:3px solid #2a1810; }
+#actbtn { position:fixed; right:20px; bottom:30px; width:92px; height:92px; border-radius:50%; background:#f4d03f; color:#2a1810; font-size:38px; display:none; align-items:center; justify-content:center; z-index:15; border:4px solid #2a1810; box-shadow:4px 4px 0 rgba(0,0,0,.4); touch-action:none; }
+#actbtn.show { display:flex; }
+#actbtn.ready { background:#7fd45e; }
+
+/* ---- Pantalla final ---- */
+#end { position:fixed; inset:0; z-index:40; background:rgba(20,12,8,.94); display:none; flex-direction:column; align-items:center; justify-content:center; color:#fff; text-align:center; padding:0 16px; overflow-y:auto; }
+#end.show { display:flex; }
+#end h1 { font-size:1.9em; letter-spacing:2px; text-shadow:4px 4px 0 #000; margin-bottom:6px; }
+#end h1.win { color:#7fd45e; }
+#end h1.lose { color:#e05548; }
+#end .msg { color:#f4d03f; font-size:1em; margin-bottom:16px; max-width:420px; line-height:1.5; }
+#end .stats { background:#3a2818; border:3px solid #7a5230; padding:12px 22px; line-height:2; font-size:.95em; box-shadow:6px 6px 0 rgba(0,0,0,.5); text-align:left; }
+#end .stats b { color:#f4d03f; }
+#end .record { margin-top:12px; color:#aed6f1; font-weight:bold; }
+#end .newrecord { color:#7fd45e; animation:blink 1s steps(2) infinite; }
+#end .btn { background:#f4d03f; color:#2a1810; border:3px solid #7a5230; padding:12px 24px; font-weight:bold; font-family:inherit; font-size:1em; cursor:pointer; box-shadow:4px 4px 0 rgba(0,0,0,.5); margin-top:18px; }
+#end .lb { margin-top:16px; width:100%; max-width:340px; }
+#end .lb input { background:#3a2818; border:2px solid #7a5230; color:#fff; padding:9px; font-family:inherit; font-size:.95em; width:60%; }
+#end .lb button { background:#7fd45e; color:#2a1810; border:2px solid #2a1810; padding:9px 12px; font-family:inherit; font-weight:bold; cursor:pointer; }
+#end .lb ol { text-align:left; margin:10px 0 0 24px; color:#e8d8c8; font-size:.9em; line-height:1.7; }
+#end .lb .note { color:rgba(255,255,255,.35); font-size:.75em; margin-top:8px; }
+</style>
+</head>
+<body>
+
+<div id="title">
+  <h1>🍇 EL FAVORITO DE BAAL</h1>
+  <div class="sub">Una bodega, un tal Alex, y mucho vino por hacer</div>
+  <div class="ctrl">
+    <span class="key">←↑↓→</span> o <span class="key">WASD</span> — moverse (o joystick en móvil)<br>
+    <span class="key">ESPACIO</span> — cosechar · fermentar · embotellar · espantar<br>
+    🎯 Consigue <b style="color:#f4d03f">100€</b> antes de que acabe el tiempo<br><br>
+    🍇 Cosecha uvas → 🛢️ tanque (3 = 1 vino) → 🍾 embotella → 🚚 camión<br>
+    🦌 Espanta a los ciervos antes de que se coman las uvas (<b style="color:#f4d03f">+5€</b>)<br>
+    ⛈️ Si viene tormenta, ¡cosecha rápido o te quedas sin uvas!<br>
+    🎸 Coge la guitarra que cae del rayo: turbo rockero 30s<br>
+    🚜 Con botellas encima, Alex reparte en tractor
+  </div>
+  <div class="record" id="title-record"></div>
+  <div class="start">— PULSA ESPACIO O TOCA LA PANTALLA —</div>
+</div>
+
+<div id="hud">
+  <div class="chip" id="chip-time">⏱️ <b id="h-time">5:00</b></div>
+  <div class="chip">💰 <b id="h-money">0</b>/100€</div>
+  <div class="chip">🍇 <b id="h-grapes">0</b>/5</div>
+  <div class="chip">🛢️ <b id="h-tank">0</b>/3</div>
+  <div class="chip">🍷 <b id="h-wine">0</b></div>
+  <div class="chip">🍾 <b id="h-bottles">0</b>/4</div>
+</div>
+
+<div id="objective"><span class="tag">📋</span><span id="obj"></span></div>
+<div id="prompt"><span class="key">ESPACIO</span><span id="ptext"></span></div>
+<div id="hint">←↑↓→ / WASD moverse · ESPACIO interactuar · M música · V voz</div>
+<div id="storm-banner">⛈️ ¡TORMENTA EN CAMINO! ¡Cosecha las uvas YA!</div>
+<div id="musicbtn">🔊</div>
+<div id="voicebtn">🗣️</div>
+
+<div id="joystick"><div class="stick"></div></div>
+<div id="actbtn">✋</div>
+
+<div id="end">
+  <h1 id="end-title"></h1>
+  <div class="msg" id="end-msg"></div>
+  <div class="stats" id="end-stats"></div>
+  <div class="record" id="end-record"></div>
+  <div class="lb" id="end-lb"></div>
+  <button class="btn" onclick="location.reload()">🔄 JUGAR OTRA VEZ</button>
+</div>
+
+<div id="game"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+<script>
+// =====================================================================
+//  EL FAVORITO DE BAAL — prototipo pixel art
+//  Todos los sprites se dibujan por código (canvas), sin imágenes externas.
+// =====================================================================
+
+// ╔═══════════════════════════════════════════════════════════════════╗
+// ║  ⚙️  AJUSTES RÁPIDOS DE LA PARTIDA — toca estos números y listo   ║
+// ╚═══════════════════════════════════════════════════════════════════╝
+const GAME_MINUTES = 5;        // ⏱️  MINUTOS de partida (cuenta atrás)
+const GOAL_MONEY = 100;        // 💰 OBJETIVO de dinero para ganar
+const GUITAR_STAY_SECONDS = 12; // 🎸 segundos que la guitarra espera en el suelo
+                                //    (pediste 1.5 pero es imposible llegar a tiempo;
+                                //     pon 1.5 aquí si lo quieres modo pesadilla 😉)
+const BOOST_SECONDS = 30;      // 🎸 duración del turbo rockero
+const DEER_EAT_SECONDS = 5;    // 🦌 segundos antes de que el ciervo se coma la uva
+const DEER_REWARD = 5;         // 🦌 € por espantar un ciervo
+
+// 🌐 MARCADOR GLOBAL (opcional) — hoja de Google Sheets en tu Drive:
+//    1) Sigue las instrucciones del archivo leaderboard-apps-script.js
+//    2) Pega aquí la URL que te da Google (termina en /exec):
+const LEADERBOARD_URL = ''; // ej: 'https://script.google.com/macros/s/XXXX/exec'
+
+const S = 3;                       // escala global del pixel art
+const PS = 2;                      // escala del personaje (sprite 28x46 en alta resolución)
+const WORLD = { w: 1500, h: 1100 };
+const SPEED = 210;
+
+const RULES = { MAX_GRAPES: 5, GRAPES_PER_WINE: 3, MAX_BOTTLES: 4, PRICE: 25, REGROW: 12000 };
+
+const ST = {
+  grapes: 0, tank: 0, wine: 0, bottles: 0, money: 0,
+  busy: false, delivering: false, started: false, ended: false,
+  deerScared: 0, delivered: 0, guitars: 0,
+  boostUntil: 0, endAt: 0,
+};
+
+// ---------------------------------------------------------------------
+// Sonido: bips retro con WebAudio (se activa con el primer gesto)
+// ---------------------------------------------------------------------
+let AC = null;
+function initAudio() {
+  if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+  if (AC && AC.state === 'suspended') AC.resume();
+}
+function snd(freq, dur = 0.09, type = 'square', vol = 0.12) {
+  if (!AC) return;
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(vol, AC.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + dur);
+  o.connect(g); g.connect(AC.destination);
+  o.start(); o.stop(AC.currentTime + dur);
+}
+function chord(freqs, gap = 70) { freqs.forEach((f, i) => setTimeout(() => snd(f, 0.13), i * gap)); }
+function thunderSnd(vol = 0.22) {
+  if (!AC) return;
+  const dur = 0.7, buf = AC.createBuffer(1, AC.sampleRate * dur, AC.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2.2);
+  const src = AC.createBufferSource(); src.buffer = buf;
+  const g = AC.createGain(); g.gain.value = vol;
+  src.connect(g); g.connect(AC.destination); src.start();
+}
+
+// ---------------------------------------------------------------------
+// Música chiptune de fondo (8A): melodía de granja + riff rockero (guitarra)
+// ---------------------------------------------------------------------
+const Music = {
+  timer: null, muted: false, rock: false, step: 0,
+  // melodía alegre de granja (pentatónica de Do)
+  farmMel:  [523,0,659,0,784,659,0,0, 880,0,784,0,659,523,0,0, 587,0,659,0,784,0,880,784, 659,0,587,0,523,0,0,0],
+  farmBass: [131,0,0,196,0,0,131,0, 165,0,0,196,0,0,165,0, 147,0,0,220,0,0,147,0, 196,0,0,165,0,0,131,0],
+  // riff rockero pentatónico (modo La Credence 🎸)
+  rockMel:  [165,165,0,196,0,165,220,0, 247,0,220,196,0,165,0,0, 165,165,0,196,0,220,247,0, 294,0,247,220,0,196,165,0],
+  rockBass: [82,82,0,82,0,82,110,0, 123,0,110,98,0,82,0,0, 82,82,0,82,0,110,123,0, 147,0,123,110,0,98,82,0],
+  start() {
+    if (this.timer) return;
+    this.timer = setInterval(() => this.tick(), 150);
+  },
+  stop() { if (this.timer) { clearInterval(this.timer); this.timer = null; } },
+  setRock(r) { this.rock = r; this.step = 0; },
+  tick() {
+    if (this.muted || !AC || ST.ended) return;
+    const i = this.step % 32;
+    const mel = this.rock ? this.rockMel : this.farmMel;
+    const bass = this.rock ? this.rockBass : this.farmBass;
+    if (mel[i]) snd(mel[i], this.rock ? 0.13 : 0.11, this.rock ? 'sawtooth' : 'square', this.rock ? 0.055 : 0.035);
+    if (bass[i]) snd(bass[i], 0.14, 'triangle', 0.05);
+    this.step++;
+  },
+};
+function toggleMusic() {
+  Music.muted = !Music.muted;
+  document.getElementById('musicbtn').textContent = Music.muted ? '🔇' : '🔊';
+}
+
+// ---------------------------------------------------------------------
+// Voz de Alex (Web Speech API): hombre en español
+// ---------------------------------------------------------------------
+let voiceMuted = false;
+let voiceES = null;
+function pickVoice() {
+  if (!('speechSynthesis' in window)) return;
+  const vs = speechSynthesis.getVoices().filter(v => /^es/i.test(v.lang));
+  // voces masculinas en español por orden de preferencia (según plataforma)
+  const prefs = [/jorge/i, /diego/i, /carlos/i, /juan/i, /enrique/i, /eddy/i, /reed/i, /rocko/i, /grandpa/i, /google español/i, /male|hombre/i];
+  for (const re of prefs) {
+    const v = vs.find(x => re.test(x.name) && x.lang === 'es-ES') || vs.find(x => re.test(x.name));
+    if (v) { voiceES = v; return; }
+  }
+  voiceES = vs.find(v => v.lang === 'es-ES') || vs[0] || null;
+}
+if ('speechSynthesis' in window) {
+  speechSynthesis.onvoiceschanged = pickVoice;
+  pickVoice();
+}
+function speak(text) {
+  if (voiceMuted || !('speechSynthesis' in window)) return;
+  try {
+    speechSynthesis.cancel(); // corta la frase anterior si sigue sonando
+    const u = new SpeechSynthesisUtterance(text.replace(/[♪]/g, ''));
+    u.lang = 'es-ES';
+    if (voiceES) u.voice = voiceES;
+    u.rate = 1.05;
+    u.pitch = 0.75; // más grave = más voz de hombre aunque la voz sea neutra
+    u.volume = 0.9;
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+function toggleVoice() {
+  voiceMuted = !voiceMuted;
+  if (voiceMuted && 'speechSynthesis' in window) speechSynthesis.cancel();
+  document.getElementById('voicebtn').textContent = voiceMuted ? '🤐' : '🗣️';
+}
+
+// ---------------------------------------------------------------------
+// Paletas y mapas de píxeles (cada letra = un color, '.' = transparente)
+// ---------------------------------------------------------------------
+const PAL = {
+  // Alex alta resolución (look Fuji)
+  y: '#e8c65a', Y: '#f4dc84', o: '#b08a3c',          // melena rubia + mechas + cejas
+  f: '#f0c8a0', F: '#dba87c', e: '#3a2a1a', m: '#c07a55', // piel, sombra, ojos, boca
+  s: '#68b95c', S: '#4a9345', T: '#3d7a38',          // camiseta verde + sombra + ribetes
+  p: '#cfc0a0', P: '#b3a284',                        // shorts beige + bolsillo cargo
+  n: '#8a5d3b',                                      // sandalias
+  // mundo
+  g: '#4f9440', l: '#3a742f', u: '#7a4bbf', t: '#7a5230',
+  w: '#6e4a26', r: '#9a6b3a',
+  d: '#6e4426', B: '#8a5c32',
+  k: '#2b2b2b',
+  c: '#2e5a34', W: '#e8e0c8',
+};
+
+// --- Alex estilo Fuji en ALTA RESOLUCIÓN: 28x46 px por frame ---
+const AX_HEAD_S = [
+'..........yyyyyyyy..........',
+'........yyyyyyyyyyyy........',
+'.......yyyyyyyyyyyyyy.......',
+'......yyyyyyyyyyyyyyyy......',
+'......yyYYyyyyyyyyYyyy......',
+'.....yyyyyyyyyyyyyyyyyy.....',
+'.....yyyyffffffffffyyyy.....',
+'.....yyyffffffffffffyyy.....',
+'.....yyyffffffffffffyyy.....',
+'.....yyyffooffffooffyyy.....',
+'.....yyyffeeffffeeffyyy.....',
+'.....yyyffffffffffffyyy.....',
+'.....yyyfFffffffffFfyyy.....',
+'.....yyyffffmmmmffffyyy.....',
+'.....yyyyffffffffffyyyy.....',
+'......yyy.ffffffff.yyy......',
+'......yyy..ffffff..yyy......',
+'......yy..TTTTTTTT..yy......',
+'......yy.ssssssssss.yy......',
+'.....yy.ssssssssssss.yy.....',
+'.....y.ssssssssssssss.y.....',
+];
+const AX_HEAD_N = [
+'..........yyyyyyyy..........',
+'........yyyyyyyyyyyy........',
+'.......yyyyyyyyyyyyyy.......',
+'......yyyyyyyyyyyyyyyy......',
+'......yyYYyyyyyyyyYyyy......',
+'.....yyyyyyyyyyyyyyyyyy.....',
+'.....yyyyyyYyyyyyyyyyyy.....',
+'.....yyyyyyyyyyYyyyyyyy.....',
+'.....yyyYyyyyyyyyyyyyyy.....',
+'.....yyyyyyyyyyyyyyYyyy.....',
+'.....yyyyyyyyyyyyyyyyyy.....',
+'.....yyyyyYyyyyyyyyyyyy.....',
+'.....yyyyyyyyyyyyYyyyyy.....',
+'.....yyyyyyyyyyyyyyyyyy.....',
+'.....yyyyyyyyyyyyyyyyyy.....',
+'.....yyyyyyyyyyyyyyyyyy.....',
+'......yyyyyyyyyyyyyyyy......',
+'......yyyyyyyyyyyyyyyy......',
+'......yyyyyyyyyyyyyyyy......',
+'.....yyyyyyyyyyyyyyyyyy.....',
+'.....ssyyyyyyyyyyyyyyss.....',
+];
+const AX_HEAD_E = [
+'..........yyyyyyyy..........',
+'........yyyyyyyyyyyy........',
+'.......yyyyyyyyyyyyyy.......',
+'......yyyyyyyyyyyyyyyy......',
+'......yyYYyyyyyyyyyyyy......',
+'......yyyyyyyyyyyyyyyy......',
+'......yyyyyyyyffffffff......',
+'......yyyyyyyfffffffff......',
+'......yyyyyyyfffffffff......',
+'......yyyyyyyfffoofff.......',
+'......yyyyyyyfffeefff.......',
+'......yyyyyyyfffffffff......',
+'......yyyyyyyffffffFff......',
+'......yyyyyyyffffmmff.......',
+'......yyyyyyyyffffffff......',
+'......yyyyyyyy.ffffff.......',
+'......yyyyyyyy..ffff........',
+'......yyyyyyyy.TTTTTT.......',
+'......yyyyyyy.ssssssss......',
+'......yyyyyy.ssssssssss.....',
+'......yyyyy.ssssssssssss....',
+];
+const AX_BODY_S = [
+'....ssssssssssssssssssss....',
+'....ssssssssssssssssssss....',
+'....ssSSssssssssssssSSss....',
+'....ssssssssssssssssssss....',
+'....TTTssssssssssssssTTT....',
+'....fff.ssssssssssss.fff....',
+'....fff.ssssssssssss.fff....',
+'....fff.ssssssssssss.fff....',
+'....fff.SSssssssssSS.fff....',
+'....fff.pppppppppppp.fff....',
+'....fff.pppppppppppp.fff....',
+'.....ff.pppppppppppp.ff.....',
+'........ppppppppPPpp........',
+'........ppppppppPPpp........',
+'........pppppppppppp........',
+];
+const AX_BODY_N = [
+'....ssssyyyyyyyyyyyyssss....',
+'....ssssyyyyyyyyyyyyssss....',
+'....sssssyyyyyyyyyysssss....',
+'....ssssssyyyyyyyyssssss....',
+'....TTTsssyyyyyyyysssTTT....',
+'....fff.ssyyyyyyyyss.fff....',
+'....fff.ssyyyyyyyyss.fff....',
+'....fff.sssyyyyyysss.fff....',
+'....fff.SSssyyyyssSS.fff....',
+'....fff.pppppppppppp.fff....',
+'....fff.pppppppppppp.fff....',
+'.....ff.pppppppppppp.ff.....',
+'........ppppppppPPpp........',
+'........ppppppppPPpp........',
+'........pppppppppppp........',
+];
+const AX_BODY_E = [
+'......yyyy.sssssssssssss....',
+'......yyyy.sssssssssssss....',
+'......yyy..sssssssssssss....',
+'......yy...sssssssssssss....',
+'...........ssssTTTTssss.....',
+'...........sss.ffff.sss.....',
+'...........sss.ffff.sss.....',
+'...........sss.ffff.sss.....',
+'...........SSS.ffff.SSS.....',
+'...........ppp.ffff.ppp.....',
+'...........pppp.ff.pppp.....',
+'...........pppppppppppp.....',
+'...........ppppPPpppppp.....',
+'...........ppppPPpppppp.....',
+'...........pppppppppppp.....',
+];
+const AX_LEGS_I = [
+'........ppppp..ppppp........',
+'........fffff..fffff........',
+'........fffff..fffff........',
+'........fffff..fffff........',
+'........fffff..fffff........',
+'........fffff..fffff........',
+'........fffff..fffff........',
+'........fnfnf..fnfnf........',
+'........nnnnn..nnnnn........',
+'.......nnnnnn..nnnnnn.......',
+];
+const AX_LEGS_W = [
+'......ppppp......ppppp......',
+'......fffff......fffff......',
+'......fffff......fffff......',
+'......fffff......fffff......',
+'......fffff......fffff......',
+'......fffff......fffff......',
+'......fffff......fffff......',
+'......fnfnf......fnfnf......',
+'......nnnnn......nnnnn......',
+'.....nnnnnn......nnnnnn.....',
+];
+const AX_LEGS_EI = [
+'.............pppppp.........',
+'.............ffffff.........',
+'.............ffffff.........',
+'.............ffffff.........',
+'.............ffffff.........',
+'.............ffffff.........',
+'.............ffffff.........',
+'.............ffffff.........',
+'.............nnnnnnnn.......',
+'.............nnnnnnnn.......',
+];
+const AX_LEGS_EW = [
+'...........pppp..pppp.......',
+'...........ffff..ffff.......',
+'..........ffff....ffff......',
+'..........ffff....ffff......',
+'.........ffff......ffff.....',
+'.........ffff......ffff.....',
+'.........ffff......ffff.....',
+'.........ffff......ffff.....',
+'.......nnnnnn......nnnnnn...',
+'.......nnnnnn......nnnnnn...',
+];
+
+const ALEX = {
+  s_idle: AX_HEAD_S.concat(AX_BODY_S, AX_LEGS_I),  s_walk: AX_HEAD_S.concat(AX_BODY_S, AX_LEGS_W),
+  n_idle: AX_HEAD_N.concat(AX_BODY_N, AX_LEGS_I),  n_walk: AX_HEAD_N.concat(AX_BODY_N, AX_LEGS_W),
+  e_idle: AX_HEAD_E.concat(AX_BODY_E, AX_LEGS_EI), e_walk: AX_HEAD_E.concat(AX_BODY_E, AX_LEGS_EW),
+};
+
+// --- Ciervos ladrones ---
+const DEER_PAL = { d: '#a97c50', D: '#8a6340', W: '#f0e6d8', k: '#3a2c1e', t: '#6e4a26' };
+const DEER1 = [
+  '..............t..t..',
+  '...............tt...',
+  '..............dddd..',
+  '..............dkdd..',
+  '...ddddddddddDdd....',
+  '..Wddddddddddddd....',
+  '..ddddddddddddd.....',
+  '...dWWWWWWWWWWd.....',
+  '...dd..dd..dd..dd...',
+  '...dd..dd..dd..dd...',
+  '...kk..kk..kk..kk...',
+];
+const DEER2 = DEER1.slice(0, 8).concat([
+  '....dd.dd...dd.dd...',
+  '....dd.dd...dd.dd...',
+  '....kk.kk...kk.kk...',
+]);
+
+// --- NPCs: Isabel y Dorell ---
+const ISABEL_PAL = { h: '#2e2018', f: '#f0c8a0', e: '#26160c', r: '#b03a48', R: '#8a2f3a', k: '#33261a' };
+const ISABEL = [
+  '....hhhhhh....',
+  '...hhhhhhhh...',
+  '...hffffffh...',
+  '...hfeffefh...',
+  '...hffffffh...',
+  '....ffffff....',
+  '...rrrrrrrr...',
+  '..frrrrrrrrf..',
+  '..frrrrrrrrf..',
+  '...rrrrrrrr...',
+  '...rrRrrRrr...',
+  '..rrrrrrrrrr..',
+  '..rrrrrrrrrr..',
+  '.rrrrrrrrrrrr.',
+  '.rrrrrrrrrrrr.',
+  '....ff..ff....',
+  '....ff..ff....',
+  '....kk..kk....',
+];
+const DORELL_PAL = { a: '#d9b23c', f: '#e8b088', e: '#26160c', B: '#8a5c32', b: '#6e4426', p: '#4a3b2a', k: '#33261a' };
+const DORELL = [
+  '....aaaaaa....',
+  '...aaaaaaaa...',
+  '.aaaaaaaaaaaa.',
+  '...ffffffff...',
+  '...feffffef...',
+  '...ffffffff...',
+  '....ffffff....',
+  '...BBBBBBBB...',
+  '..fBBBBBBBBf..',
+  '..fBBbBBbBBf..',
+  '...BBBBBBBB...',
+  '...pppppppp...',
+  '...pppppppp...',
+  '....pp..pp....',
+  '....pp..pp....',
+  '....kk..kk....',
+];
+
+// --- Guitarra eléctrica de La Credence ---
+const GUITAR_PAL = { h: '#33261a', n: '#8a5c32', b: '#c0392b', d: '#7b241c', z: '#f4d03f' };
+const GUITAR = [
+  '...hhhh...',
+  '...hhhh...',
+  '....nn....',
+  '....nn....',
+  '....nn....',
+  '....nn....',
+  '....nn....',
+  '....nn....',
+  '...dnnd...',
+  '..bbbbbb..',
+  '.bbbbbbbb.',
+  'bbbbzzbbbb',
+  'bbbzzbbbbb',
+  'bbbbzzbbbb',
+  '.bbbbbbbb.',
+  '.bbbbbbbb.',
+  '..bbbbbb..',
+  '...dddd...',
+];
+
+// --- resto de mapas del mundo ---
+const VINE = [
+  '.....gggggg.....',
+  '...gglggggggg...',
+  '..gglgggglgggg..',
+  '.ggguggggglggg..',
+  '.glguuggggguug..',
+  '.gggguuggluugg..',
+  '..ggluggggugg...',
+  '...gggglugggg...',
+  '.....gggggg.....',
+  '.......tt.......',
+  '.......tt.......',
+  '......ttt.......',
+  '.......tt.......',
+  '.....tttttt.....',
+];
+const TREE = [
+  '.....llllll.....',
+  '...llgggggll....',
+  '..lggggggggll...',
+  '.lgggggggggggl..',
+  '.lggglggggggll..',
+  'lgggggggglggggl.',
+  'lggglgggggggggl.',
+  '.lgggggglggggl..',
+  '.llgggggggggl...',
+  '..llgggggggll...',
+  '....llggglll....',
+  '......llll......',
+  '.......tt.......',
+  '.......tt.......',
+  '.......tt.......',
+  '......ttt.......',
+  '......tt........',
+  '.......tt.......',
+  '......tttt......',
+  '.....tttttt.....',
+];
+const FENCE = [
+  '.ww..........ww.',
+  '.ww..........ww.',
+  'rrrrrrrrrrrrrrrr',
+  'rrrrrrrrrrrrrrrr',
+  '.ww..........ww.',
+  '.ww..........ww.',
+  'rrrrrrrrrrrrrrrr',
+  'rrrrrrrrrrrrrrrr',
+  '.ww..........ww.',
+  '.ww..........ww.',
+  '.ww..........ww.',
+  '.ww..........ww.',
+];
+const BARREL = [
+  '..dddddddd..',
+  '.BBBBBBBBBB.',
+  'dBBBBBBBBBBd',
+  'dddddddddddd',
+  'BBBBBBBBBBBB',
+  'BBBBBBBBBBBB',
+  'dddddddddddd',
+  'BBBBBBBBBBBB',
+  'BBBBBBBBBBBB',
+  'dddddddddddd',
+  'dBBBBBBBBBBd',
+  '.BBBBBBBBBB.',
+  '..dddddddd..',
+];
+const BIRD1 = ['k......k', '.k....k.', '..kkkk..', '........'];
+const BIRD2 = ['........', '..kkkk..', '.k....k.', 'k......k'];
+const GRAPE_ICON = ['....l...', '...ll...', '..uuuu..', '.uuuuuu.', '.uuuuuu.', '..uuuu..', '...uu...', '........'];
+const BOTTLE_ICON = ['..cc..', '..cc..', '.cccc.', 'cccccc', 'cccccc', 'cWWWWc', 'cWWWWc', 'cccccc', 'cccccc', 'cccccc'];
+
+// ---------------------------------------------------------------------
+// Frases de Alex — la de Bruno pesa x3 (aparece mucho más)
+// ---------------------------------------------------------------------
+const PHRASES = [
+  '¡No! ¡El tercero no!',
+  'Coño, me he olvidado a Bruno en el carrito de la bici... espero que tenga agua.',
+  'Venga venga, vamos a darnos prisa que tengo que hacer la cena.',
+  'María, mi amor: si tus besos fueran uvas, no llegaba ni una al tanque.',
+  'Oh María, luz de mi bodega: sin ti hasta el reserva se me avinagra.',
+  'María, eres el roble de mi barrica y la burbuja de mi copa.',
+  'Para María: tu risa es la única cosecha que no me falla ningún año.',
+];
+// pool ponderado: el índice 1 (Bruno) aparece 3 veces
+const PHRASE_POOL = [0, 1, 1, 1, 2, 3, 4, 5, 6];
+
+const ISABEL_PHRASES = [
+  '¡Soy Isabel! Fuji, ese tractor mete más ruido que mi suegra en Nochebuena.',
+  'Isabel te avisa: como no llegues a los 100€, BAAL se va a enfadar...',
+  'Isabel pregunta: ¿y María qué dice de tanta uva, guapo?',
+];
+const DORELL_PHRASES = [
+  'Dorell al aparato: ¿me guardas una botella del bueno o qué?',
+  'Soy Dorell, y digo yo... ¿el pollo con repollo marida con tinto?',
+  'Dorell opina: esas uvas están más verdes que mi cuñado.',
+];
+
+// ---------------------------------------------------------------------
+// Marcador global (Google Sheets vía Apps Script)
+// ---------------------------------------------------------------------
+async function sendScore(name) {
+  if (!LEADERBOARD_URL) return false;
+  try {
+    await fetch(LEADERBOARD_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ name, score: ST.money }),
+    });
+    return true;
+  } catch (e) { return false; }
+}
+async function loadScores() {
+  if (!LEADERBOARD_URL) return null;
+  try {
+    const r = await fetch(LEADERBOARD_URL);
+    return await r.json();
+  } catch (e) { return null; }
+}
+
+// ---------------------------------------------------------------------
+// Escena principal
+// ---------------------------------------------------------------------
+class Main extends Phaser.Scene {
+  constructor() { super('main'); }
+
+  // ---------- creación de texturas por código ----------
+  tex(key, w, h, draw) {
+    const t = this.textures.createCanvas(key, w, h);
+    const c = t.getContext();
+    const px = (x, y, col, ww = 1, hh = 1) => { c.fillStyle = col; c.fillRect(x, y, ww, hh); };
+    draw(c, px);
+    t.refresh();
+  }
+
+  mapTex(key, rows, pal = PAL) {
+    const w = Math.max(...rows.map(r => r.length));
+    this.tex(key, w, rows.length, (c, px) => {
+      rows.forEach((row, y) => {
+        for (let x = 0; x < row.length; x++) {
+          const ch = row[x];
+          if (ch !== '.' && pal[ch]) px(x, y, pal[ch]);
+        }
+      });
+    });
+  }
+
+  makeTextures() {
+    const rnd = n => Math.floor(Math.random() * n);
+
+    for (const k in ALEX) this.mapTex('alex_' + k, ALEX[k]);
+    this.mapTex('vine_full', VINE);
+    this.mapTex('vine_empty', VINE.map(r => r.replace(/u/g, 'g')));
+    this.mapTex('tree', TREE);
+    this.mapTex('fence', FENCE);
+    this.mapTex('barrel', BARREL);
+    this.mapTex('bird1', BIRD1);
+    this.mapTex('bird2', BIRD2);
+    this.mapTex('grape_icon', GRAPE_ICON);
+    this.mapTex('bottle_icon', BOTTLE_ICON);
+    this.mapTex('deer1', DEER1, DEER_PAL);
+    this.mapTex('deer2', DEER2, DEER_PAL);
+    this.mapTex('isabel', ISABEL, ISABEL_PAL);
+    this.mapTex('dorell', DORELL, DORELL_PAL);
+    this.mapTex('guitar', GUITAR, GUITAR_PAL);
+
+    for (const [key, base, d1, d2] of [['grass', '#79a648', '#6f9a40', '#84b153'], ['grass2', '#7aa74a', '#709b41', '#86b356']]) {
+      this.tex(key, 32, 32, (c, px) => {
+        px(0, 0, base, 32, 32);
+        for (let i = 0; i < 70; i++) px(rnd(32), rnd(32), Math.random() < 0.5 ? d1 : d2);
+        for (let i = 0; i < 9; i++) { const x = rnd(31), y = 1 + rnd(30); px(x, y, '#5f8a38'); px(x, y - 1, '#5f8a38'); }
+      });
+    }
+    this.tex('dirt', 32, 32, (c, px) => {
+      px(0, 0, '#b08a5a', 32, 32);
+      for (let i = 0; i < 60; i++) px(rnd(32), rnd(32), Math.random() < 0.5 ? '#a07a4c' : '#bd9765');
+      for (let i = 0; i < 6; i++) px(rnd(30), rnd(30), '#8f6d44', 2, 1);
+    });
+    this.tex('soil', 32, 32, (c, px) => {
+      px(0, 0, '#8a6a45', 32, 32);
+      for (let i = 0; i < 50; i++) px(rnd(32), rnd(32), Math.random() < 0.5 ? '#7d5f3d' : '#96754e');
+      for (let y = 3; y < 32; y += 8) px(0, y, '#7a5c3b', 32, 1);
+    });
+    this.tex('shadow', 16, 6, (c) => {
+      c.fillStyle = 'rgba(0,0,0,0.28)';
+      c.beginPath(); c.ellipse(8, 3, 7, 2.6, 0, 0, Math.PI * 2); c.fill();
+    });
+    this.tex('bodega', 64, 46, (c, px) => {
+      for (let y = 0; y < 15; y++) { const m = Math.max(0, 12 - y); px(m, y, '#8c3b2e', 64 - 2 * m, 1); }
+      for (let x = 4; x < 60; x += 6) for (let y = 2; y < 14; y++) { const m = Math.max(0, 12 - y); if (x > m && x < 63 - m) px(x, y, '#7d332a'); }
+      px(0, 14, '#6f2c22', 64, 2);
+      px(2, 16, '#a2703f', 60, 30);
+      for (let y = 21; y < 46; y += 5) px(2, y, '#8a5c32', 60, 1);
+      px(2, 16, '#7a5230', 1, 30); px(61, 16, '#7a5230', 1, 30);
+      px(26, 26, '#5a3a20', 12, 20); px(27, 27, '#3a2512', 10, 19); px(35, 36, '#d9a066', 1, 2);
+      for (const wx of [8, 46]) {
+        px(wx, 24, '#5a3a20', 10, 9); px(wx + 1, 25, '#ffd97a', 8, 7);
+        px(wx + 4, 25, '#5a3a20', 1, 7); px(wx + 1, 28, '#5a3a20', 8, 1);
+      }
+    });
+    this.tex('sign', 78, 18, (c, px) => {
+      px(0, 0, '#4a3018', 78, 18);
+      px(2, 2, '#9a6b3a', 74, 14);
+      px(2, 2, '#ab7c48', 74, 2);
+      for (const nx of [4, 73]) for (const ny of [4, 12]) px(nx, ny, '#33241a', 2, 2);
+    });
+    this.tex('tank', 20, 30, (c, px) => {
+      px(4, 0, '#9aa3ab', 12, 2);
+      px(2, 2, '#b8bfc6', 16, 22);
+      px(3, 3, '#d3d9de', 3, 20);
+      px(2, 8, '#8f979e', 16, 2); px(2, 16, '#8f979e', 16, 2);
+      px(1, 2, '#6d757c', 1, 22); px(18, 2, '#6d757c', 1, 22);
+      px(8, 10, '#5c2f86', 4, 4); px(9, 11, '#8250c8', 2, 2);
+      px(9, 22, '#6d757c', 2, 3);
+      px(4, 24, '#6d757c', 2, 6); px(14, 24, '#6d757c', 2, 6);
+    });
+    this.tex('bottler', 26, 24, (c, px) => {
+      px(1, 2, '#7d8a94', 24, 16); px(1, 2, '#95a2ac', 24, 2);
+      px(3, 6, '#4a545c', 8, 8);
+      px(4, 7, '#7fd45e', 2, 2); px(8, 7, '#e05548', 2, 2);
+      px(14, 3, '#5c6870', 8, 4);
+      px(16, 8, '#2e5a34', 4, 8); px(17, 7, '#2e5a34', 2, 1);
+      px(1, 18, '#3a4148', 24, 3);
+      for (let x = 2; x < 24; x += 4) px(x, 19, '#565f66', 2, 1);
+      px(2, 21, '#2b3136', 3, 3); px(21, 21, '#2b3136', 3, 3);
+    });
+    this.tex('truck', 40, 24, (c, px) => {
+      const wheel = (x, y) => {
+        px(x + 1, y, '#232527', 4, 1); px(x, y + 1, '#232527', 6, 4); px(x + 1, y + 5, '#232527', 4, 1);
+        px(x + 2, y + 2, '#6d757c', 2, 2);
+      };
+      px(1, 2, '#8a5c32', 24, 14); px(1, 2, '#9a6b3a', 24, 2);
+      for (let y = 6; y < 16; y += 4) px(1, y, '#6e4a26', 24, 1);
+      px(1, 2, '#5c3d1e', 1, 14); px(24, 2, '#5c3d1e', 1, 14);
+      px(25, 6, '#c0392b', 13, 10); px(26, 7, '#d35445', 11, 2);
+      px(28, 7, '#bfe3ff', 7, 5); px(31, 7, '#8fb8d8', 1, 5);
+      px(37, 12, '#f4d03f', 2, 2);
+      px(25, 14, '#8a2f23', 13, 2);
+      px(1, 16, '#33363a', 38, 2);
+      wheel(5, 17); wheel(28, 17);
+    });
+    this.tex('bottle_big', 16, 38, (c, px) => {
+      px(5, 0, '#d9b23c', 6, 5);
+      px(6, 5, '#2e5a34', 4, 8);
+      px(4, 12, '#2e5a34', 8, 2);
+      px(3, 14, '#2e5a34', 10, 22);
+      px(4, 14, '#3f7346', 2, 21);
+      px(4, 19, '#ece2c8', 8, 12);
+      px(4, 19, '#c9b98f', 8, 1); px(4, 30, '#c9b98f', 8, 1);
+      px(8, 21, '#4f9440', 1, 1);
+      px(7, 22, '#7a4bbf', 2, 2); px(6, 24, '#7a4bbf', 2, 2); px(9, 24, '#7a4bbf', 2, 2);
+      px(5, 27, '#8a2f23', 6, 2);
+    });
+    this.tex('tractor_side', 32, 24, (c, px) => {
+      px(18, 2, '#555c62', 2, 7);
+      px(17, 1, '#6d757c', 4, 2);
+      px(8, 0, '#e8c65a', 6, 4);
+      px(7, 1, '#e8c65a', 2, 6);
+      px(11, 3, '#f0c8a0', 3, 3);
+      px(9, 6, '#68b95c', 5, 4);
+      px(13, 8, '#f0c8a0', 3, 2);
+      px(16, 5, '#2b2b2b', 2, 5);
+      px(6, 8, '#8a2f23', 3, 5);
+      px(12, 9, '#c0392b', 16, 6);
+      px(12, 9, '#d35445', 16, 2);
+      px(27, 10, '#f4d03f', 2, 2);
+      px(26, 14, '#8a2f23', 4, 2);
+      px(5, 10, '#232527', 8, 1); px(4, 11, '#232527', 10, 8); px(5, 19, '#232527', 8, 1);
+      px(7, 13, '#6d757c', 4, 4);
+      px(24, 15, '#232527', 4, 1); px(23, 16, '#232527', 6, 5); px(24, 21, '#232527', 4, 1);
+      px(25, 18, '#6d757c', 2, 2);
+    });
+  }
+
+  // ---------- mundo ----------
+  create() {
+    this.makeTextures();
+
+    this.physics.world.setBounds(0, 0, WORLD.w, WORLD.h);
+    this.cameras.main.setBounds(0, 0, WORLD.w, WORLD.h);
+
+    for (let x = 0; x < WORLD.w; x += 96) {
+      for (let y = 0; y < WORLD.h; y += 96) {
+        this.add.image(x, y, ((x + y) / 96) % 2 ? 'grass' : 'grass2').setOrigin(0).setScale(S).setDepth(-10);
+      }
+    }
+    this.add.tileSprite(90, 130, 520, 330, 'soil').setOrigin(0).setTileScale(S).setDepth(-9);
+    this.add.tileSprite(640, 320, 80, 400, 'dirt').setOrigin(0).setTileScale(S).setDepth(-8);
+    this.add.tileSprite(300, 560, 1050, 80, 'dirt').setOrigin(0).setTileScale(S).setDepth(-8);
+    this.add.tileSprite(640, 640, 80, 200, 'dirt').setOrigin(0).setTileScale(S).setDepth(-8);
+
+    this.obstacles = this.physics.add.staticGroup();
+
+    const place = (key, x, y, opts = {}) => {
+      const spr = this.add.image(x, y, key).setScale(S).setOrigin(0.5, 1).setDepth(y);
+      this.add.image(x, y - 2, 'shadow').setScale(S * (opts.shadowScale || 1), S).setAlpha(0.9).setDepth(5);
+      if (opts.block) {
+        const b = this.add.rectangle(x, y - opts.block[1] / 2, opts.block[0], opts.block[1]);
+        this.physics.add.existing(b, true);
+        this.obstacles.add(b);
+        spr.blockBody = b;
+      }
+      return spr;
+    };
+
+    // --- Viñedo ---
+    this.vines = [];
+    for (const [vx, vy] of [[170, 240], [310, 240], [450, 240], [170, 400], [310, 400], [450, 400]]) {
+      const spr = place('vine_full', vx, vy, { block: [40, 14], shadowScale: 1.4 });
+      this.vines.push({ spr, has: true, x: vx, y: vy });
+    }
+    for (let fx = 120; fx <= 520; fx += 48) {
+      this.add.image(fx, 150, 'fence').setScale(S).setOrigin(0.5, 1).setDepth(150);
+    }
+    for (const [tx, ty] of [[640, 200], [1300, 190], [120, 700], [1380, 950], [960, 180]]) {
+      place('tree', tx, ty, { block: [18, 12], shadowScale: 1.6 });
+    }
+
+    // --- Bodega + letrero ---
+    this.bodega = place('bodega', 700, 900, { block: [180, 40], shadowScale: 4 });
+    this.add.image(700, 790, 'sign').setScale(S).setOrigin(0.5).setDepth(901);
+    this.add.text(700, 790, 'EL FAVORITO DE BAAL', {
+      fontFamily: '"Courier New", monospace', fontSize: '17px', fontStyle: 'bold',
+      color: '#f4d03f', stroke: '#2a1810', strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(902);
+    place('barrel', 590, 890, { block: [30, 12] });
+    place('barrel', 555, 915, { block: [30, 12] });
+    this.tank = place('tank', 850, 880, { block: [50, 18], shadowScale: 1.6 });
+    this.bottler = place('bottler', 970, 875, { block: [70, 16], shadowScale: 2 });
+    this.tankLabel = this.add.text(850, 780, '', {
+      fontFamily: '"Courier New", monospace', fontSize: '15px', fontStyle: 'bold',
+      color: '#fff', stroke: '#000', strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(3000);
+
+    // --- Camión ---
+    this.truck = place('truck', 1230, 640, { block: [110, 24], shadowScale: 3.2 });
+
+    // --- Pájaros ---
+    this.birdFrame = 0;
+    this.birds = [];
+    for (let i = 0; i < 3; i++) {
+      const b = this.add.image(-60 - i * 350, 80 + i * 55, 'bird1').setScale(S).setDepth(5000);
+      this.tweens.add({ targets: b, x: WORLD.w + 80, duration: 22000 + i * 4000, repeat: -1, delay: i * 3000 });
+      this.tweens.add({ targets: b, y: b.y + 24, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      this.birds.push(b);
+    }
+    this.time.addEvent({ delay: 180, loop: true, callback: () => {
+      this.birdFrame ^= 1;
+      this.birds.forEach(b => b.setTexture(this.birdFrame ? 'bird2' : 'bird1'));
+      this.deerList.forEach(d => { if (d.state !== 'eating') d.spr.setTexture(this.birdFrame ? 'deer2' : 'deer1'); });
+    }});
+
+    // --- Alex ---
+    this.player = this.physics.add.sprite(340, 540, 'alex_s_idle').setScale(PS).setOrigin(0.5, 1);
+    this.player.body.setSize(14, 6).setOffset(7, 40);
+    this.player.setCollideWorldBounds(true);
+    this.physics.add.collider(this.player, this.obstacles);
+    this.playerShadow = this.add.image(340, 538, 'shadow').setScale(S * 1.3, S).setDepth(5);
+    this.dir = 's';
+    this.walkT = 0;
+    this.riding = false;
+    this.rideFlip = false;
+
+    this.cameras.main.startFollow(this.player, true, 0.09, 0.09);
+
+    // Indicadores de carga
+    this.carryG = this.add.image(0, 0, 'grape_icon').setScale(2).setDepth(6000).setVisible(false);
+    this.carryGText = this.add.text(0, 0, '', { fontFamily: '"Courier New", monospace', fontSize: '14px', fontStyle: 'bold', color: '#fff', stroke: '#000', strokeThickness: 4 }).setOrigin(0, 0.5).setDepth(6000);
+    this.carryB = this.add.image(0, 0, 'bottle_icon').setScale(2).setDepth(6000).setVisible(false);
+    this.carryBText = this.add.text(0, 0, '', { fontFamily: '"Courier New", monospace', fontSize: '14px', fontStyle: 'bold', color: '#fff', stroke: '#000', strokeThickness: 4 }).setOrigin(0, 0.5).setDepth(6000);
+
+    this.taskBar = this.add.graphics().setDepth(6500);
+    this.task = null;
+
+    // Overlay de tormenta (encima de todo el mundo, debajo del HUD)
+    this.stormOv = this.add.rectangle(0, 0, 4000, 3000, 0x101030).setOrigin(0).setScrollFactor(0).setAlpha(0).setDepth(8500);
+    this.flashOv = this.add.rectangle(0, 0, 4000, 3000, 0xffffff).setOrigin(0).setScrollFactor(0).setAlpha(0).setDepth(8600);
+
+    // Bocadillos
+    this.bubble = null;
+    this.lastPhrase = -1;
+    // ⏱️ FRECUENCIA DE FRASES: cada 4.5s hay un 75% de probabilidad
+    this.time.addEvent({ delay: 4500, loop: true, callback: () => {
+      if (!ST.started || ST.ended || ST.busy || this.bubble || Math.random() > 0.75) return;
+      let i;
+      do { i = PHRASE_POOL[Phaser.Math.Between(0, PHRASE_POOL.length - 1)]; } while (i === this.lastPhrase);
+      this.lastPhrase = i;
+      this.say(PHRASES[i]);
+    }});
+
+    // Ciervos ladrones, NPCs, tormentas y guitarras
+    this.deerList = [];
+    this.npcs = [];
+    this.guitarSpr = null;
+    this.scheduleDeer();
+    this.scheduleNPC();
+    this.scheduleStorm();
+    this.scheduleGuitar();
+
+    // --- Input teclado ---
+    this.cursors = this.input.keyboard.createCursorKeys();
+    this.wasd = this.input.keyboard.addKeys('W,A,S,D');
+    this.input.keyboard.on('keydown', () => initAudio());
+    this.input.keyboard.on('keydown-M', () => toggleMusic());
+    this.input.keyboard.on('keydown-SPACE', () => {
+      if (!ST.started) { this.startGame(); return; }
+      this.interact();
+    });
+
+    // --- Controles táctiles (móvil) ---
+    this.joyX = 0; this.joyY = 0;
+    this.setupTouch();
+
+    // Récord en pantalla de título
+    const rec = Number(localStorage.getItem('baal_record') || 0);
+    if (rec > 0) document.getElementById('title-record').textContent = `🏆 Mejor vendimia: ${rec}€`;
+    document.getElementById('title').addEventListener('pointerdown', () => { initAudio(); this.startGame(); });
+    document.getElementById('musicbtn').addEventListener('pointerdown', (e) => { e.stopPropagation(); toggleMusic(); });
+    document.getElementById('voicebtn').addEventListener('pointerdown', (e) => { e.stopPropagation(); toggleVoice(); });
+    this.input.keyboard.on('keydown-V', () => toggleVoice());
+
+    this.updateUI();
+  }
+
+  setupTouch() {
+    const touch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    if (!touch) return;
+    document.getElementById('joystick').classList.add('show');
+    document.getElementById('actbtn').classList.add('show');
+    document.getElementById('hint').style.display = 'none';
+    // subir objetivo y prompt para no chocar con los controles
+    document.getElementById('objective').style.bottom = '170px';
+    document.getElementById('prompt').style.bottom = '150px';
+
+    const joy = document.getElementById('joystick');
+    const stick = joy.querySelector('.stick');
+    const R = 48;
+    let active = false, cx = 0, cy = 0;
+    const move = (t) => {
+      let dx = t.clientX - cx, dy = t.clientY - cy;
+      const d = Math.hypot(dx, dy);
+      if (d > R) { dx = dx / d * R; dy = dy / d * R; }
+      stick.style.transform = `translate(${dx}px,${dy}px)`;
+      this.joyX = Math.abs(dx / R) > 0.25 ? dx / R : 0;
+      this.joyY = Math.abs(dy / R) > 0.25 ? dy / R : 0;
+    };
+    joy.addEventListener('touchstart', e => {
+      e.preventDefault(); initAudio();
+      const r = joy.getBoundingClientRect();
+      cx = r.left + r.width / 2; cy = r.top + r.height / 2;
+      active = true; move(e.touches[0]);
+    }, { passive: false });
+    joy.addEventListener('touchmove', e => { e.preventDefault(); if (active) move(e.touches[0]); }, { passive: false });
+    const end = () => { active = false; stick.style.transform = ''; this.joyX = 0; this.joyY = 0; };
+    joy.addEventListener('touchend', end);
+    joy.addEventListener('touchcancel', end);
+
+    document.getElementById('actbtn').addEventListener('touchstart', e => {
+      e.preventDefault(); initAudio();
+      if (!ST.started) { this.startGame(); return; }
+      this.interact();
+    }, { passive: false });
+  }
+
+  startGame() {
+    if (ST.started) return;
+    ST.started = true;
+    ST.endAt = this.time.now + GAME_MINUTES * 60 * 1000; // ⏱️ aquí arranca la cuenta atrás
+    document.getElementById('title').classList.add('hidden');
+    document.getElementById('hud').classList.add('show');
+    document.getElementById('objective').classList.add('show');
+    document.getElementById('musicbtn').classList.add('show');
+    document.getElementById('voicebtn').classList.add('show');
+    chord([392, 523, 659]);
+    Music.start();
+    this.updateUI();
+  }
+
+  // ---------- textos flotantes ----------
+  popup(x, y, msg, color = '#f4d03f') {
+    const t = this.add.text(x, y, msg, {
+      fontFamily: '"Courier New", monospace', fontSize: '17px', fontStyle: 'bold',
+      color, stroke: '#000', strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(7000);
+    this.tweens.add({ targets: t, y: y - 46, alpha: 0, duration: 1100, ease: 'Cubic.easeOut', onComplete: () => t.destroy() });
+  }
+
+  bounce(spr) {
+    this.tweens.add({ targets: spr, scaleX: S * 1.15, scaleY: S * 0.88, duration: 90, yoyo: true, ease: 'Sine.easeInOut' });
+  }
+
+  say(text) {
+    if (this.bubble) { this.bubble.destroy(); if (this.bubbleTimer) this.bubbleTimer.remove(); }
+    this.bubble = this.add.text(this.player.x, this.player.y, text, {
+      fontFamily: '"Courier New", monospace', fontSize: '13px', fontStyle: 'bold',
+      color: '#2a1810', backgroundColor: '#f8f4e8', padding: { x: 9, y: 6 },
+      wordWrap: { width: 230 }, align: 'center',
+    }).setOrigin(0.5, 1).setDepth(8000);
+    speak(text); // 🗣️ Alex habla la frase en voz alta
+    // ⏳ duración del bocadillo en pantalla (base + por letra)
+    this.bubbleTimer = this.time.delayedCall(3000 + text.length * 70, () => {
+      if (this.bubble) { this.bubble.destroy(); this.bubble = null; }
+    });
+  }
+
+  // ---------- ciervos ladrones (1B) ----------
+  scheduleDeer() {
+    this.time.delayedCall(Phaser.Math.Between(16000, 30000), () => {
+      if (ST.started && !ST.ended) this.spawnDeer();
+      if (!ST.ended) this.scheduleDeer();
+    });
+  }
+
+  spawnDeer() {
+    const targets = this.vines.filter(v => v.has);
+    const fromLeft = Math.random() < 0.5;
+    const startX = fromLeft ? -70 : WORLD.w + 70;
+
+    if (!targets.length) {
+      // sin uvas que robar: solo cruza corriendo
+      const y = Phaser.Math.Between(440, 610);
+      const spr = this.add.image(startX, y, 'deer1').setScale(S).setDepth(y).setFlipX(!fromLeft);
+      const deer = { spr, state: 'crossing' };
+      this.deerList.push(deer);
+      this.tweens.add({ targets: spr, x: fromLeft ? WORLD.w + 90 : -90, duration: 6000,
+        onComplete: () => this.removeDeer(deer) });
+      this.say('¡¡Malditos Fujis!!');
+      return;
+    }
+
+    // va a por una viña con uva
+    const vine = Phaser.Utils.Array.GetRandom(targets);
+    const spr = this.add.image(startX, vine.y + 30, 'deer1').setScale(S).setDepth(vine.y).setFlipX(startX > vine.x);
+    const deer = { spr, state: 'toVine', vine, eatEvent: null, label: null };
+    this.deerList.push(deer);
+    const dist = Math.abs(startX - vine.x);
+    this.tweens.add({
+      targets: spr, x: vine.x + 40, y: vine.y + 16, duration: dist * 3.2,
+      onComplete: () => {
+        if (deer.state !== 'toVine') return;
+        deer.state = 'eating';
+        spr.setTexture('deer1');
+        // cuenta atrás visible encima del ciervo
+        deer.label = this.add.text(spr.x, spr.y - 50, '🍇' + DEER_EAT_SECONDS, {
+          fontFamily: '"Courier New", monospace', fontSize: '15px', fontStyle: 'bold',
+          color: '#e05548', stroke: '#000', strokeThickness: 4,
+        }).setOrigin(0.5).setDepth(7000);
+        let left = DEER_EAT_SECONDS;
+        deer.eatEvent = this.time.addEvent({ delay: 1000, repeat: DEER_EAT_SECONDS - 1, callback: () => {
+          left--;
+          if (deer.label) deer.label.setText('🍇' + left);
+          if (left <= 0) this.deerEats(deer);
+        }});
+      },
+    });
+    this.say('¡¡Malditos Fujis!!');
+    snd(160, 0.15, 'sawtooth', 0.1);
+  }
+
+  deerEats(deer) {
+    const v = deer.vine;
+    if (v && v.has) {
+      v.has = false;
+      v.spr.setTexture('vine_empty');
+      this.popup(v.x, v.y - 60, '🦌 ¡Se comió la uva!', '#e05548');
+      this.time.delayedCall(RULES.REGROW, () => { v.has = true; v.spr.setTexture('vine_full'); this.bounce(v.spr); });
+    }
+    this.deerFlee(deer);
+  }
+
+  scareDeer(deer) {
+    if (deer.state === 'fleeing' || deer.state === 'crossing') return;
+    ST.money += DEER_REWARD;
+    ST.deerScared++;
+    this.popup(deer.spr.x, deer.spr.y - 60, `+${DEER_REWARD}€ 🦌`, '#f9e79f');
+    this.say('¡¡Malditos Fujis!!');
+    chord([659, 523]);
+    this.deerFlee(deer);
+    this.updateUI();
+  }
+
+  deerFlee(deer) {
+    deer.state = 'fleeing';
+    if (deer.eatEvent) { deer.eatEvent.remove(); deer.eatEvent = null; }
+    if (deer.label) { deer.label.destroy(); deer.label = null; }
+    const exitX = deer.spr.x < WORLD.w / 2 ? -90 : WORLD.w + 90;
+    deer.spr.setFlipX(exitX < deer.spr.x);
+    this.tweens.killTweensOf(deer.spr);
+    this.tweens.add({ targets: deer.spr, x: exitX, duration: 2200, onComplete: () => this.removeDeer(deer) });
+  }
+
+  removeDeer(deer) {
+    if (deer.label) deer.label.destroy();
+    deer.spr.destroy();
+    Phaser.Utils.Array.Remove(this.deerList, deer);
+  }
+
+  // ---------- NPCs Isabel y Dorell (3B) ----------
+  scheduleNPC() {
+    this.time.delayedCall(Phaser.Math.Between(30000, 55000), () => {
+      if (ST.started && !ST.ended) this.spawnNPC();
+      if (!ST.ended) this.scheduleNPC();
+    });
+  }
+
+  spawnNPC() {
+    const isIsabel = Math.random() < 0.5;
+    const fromLeft = Math.random() < 0.5;
+    const y = 600; // van por el camino horizontal
+    const spr = this.add.image(fromLeft ? -50 : WORLD.w + 50, y, isIsabel ? 'isabel' : 'dorell')
+      .setScale(S).setOrigin(0.5, 1).setDepth(y).setFlipX(!fromLeft);
+    const npc = { spr, said: false, label: null, phrases: isIsabel ? ISABEL_PHRASES : DORELL_PHRASES };
+    this.npcs.push(npc);
+    this.tweens.add({ targets: spr, y: y - 4, duration: 350, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' }); // andares
+    this.tweens.add({
+      targets: spr, x: fromLeft ? WORLD.w + 60 : -60, duration: 26000,
+      onComplete: () => { if (npc.label) npc.label.destroy(); spr.destroy(); Phaser.Utils.Array.Remove(this.npcs, npc); },
+    });
+  }
+
+  // ---------- tormenta (5A) ----------
+  scheduleStorm() {
+    this.time.delayedCall(Phaser.Math.Between(55000, 90000), () => {
+      if (ST.started && !ST.ended) this.startStorm();
+      if (!ST.ended) this.scheduleStorm();
+    });
+  }
+
+  startStorm() {
+    // aviso: 10 segundos para cosechar
+    document.getElementById('storm-banner').classList.add('show');
+    this.tweens.add({ targets: this.stormOv, alpha: 0.16, duration: 2000 });
+    this.say('¡Nubes negras! ¡A cosechar, rápido!');
+    snd(110, 0.4, 'sawtooth', 0.1);
+
+    this.time.delayedCall(10000, () => {
+      if (ST.ended) return;
+      document.getElementById('storm-banner').classList.remove('show');
+      this.tweens.add({ targets: this.stormOv, alpha: 0.42, duration: 600 });
+      // rayos + trueno
+      for (const dl of [0, 500, 1400]) {
+        this.time.delayedCall(dl, () => {
+          this.flashOv.setAlpha(0.75);
+          this.tweens.add({ targets: this.flashOv, alpha: 0, duration: 180 });
+          thunderSnd();
+        });
+      }
+      // las viñas con uva la pierden
+      let lost = 0;
+      for (const v of this.vines) {
+        if (v.has) {
+          v.has = false;
+          v.spr.setTexture('vine_empty');
+          lost++;
+          this.time.delayedCall(RULES.REGROW, () => { v.has = true; v.spr.setTexture('vine_full'); this.bounce(v.spr); });
+        }
+      }
+      if (lost > 0) this.time.delayedCall(700, () => this.say(`¡La tormenta se llevó ${lost} uva${lost > 1 ? 's' : ''}! ¡Maldita sea!`));
+      else this.time.delayedCall(700, () => this.say('¡Ja! Esta vez no me pillas ni una uva.'));
+      // amaina
+      this.time.delayedCall(6000, () => this.tweens.add({ targets: this.stormOv, alpha: 0, duration: 2500 }));
+    });
+  }
+
+  // ---------- guitarra de La Credence (bonus) ----------
+  scheduleGuitar() {
+    this.time.delayedCall(Phaser.Math.Between(25000, 45000), () => {
+      if (ST.started && !ST.ended && !this.guitarSpr) this.spawnGuitar();
+      if (!ST.ended) this.scheduleGuitar();
+    });
+  }
+
+  spawnGuitar() {
+    const gx = Phaser.Math.Between(160, WORLD.w - 160);
+    const gy = Phaser.Math.Between(160, WORLD.h - 120);
+    // rayo que cae del cielo
+    const bolt = this.add.graphics().setDepth(8700);
+    bolt.lineStyle(5, 0xffffff, 1);
+    bolt.beginPath();
+    let bx = gx, by = gy - 320;
+    bolt.moveTo(bx, by);
+    while (by < gy - 10) { bx += Phaser.Math.Between(-26, 26); by += 45; bolt.lineTo(bx, by); }
+    bolt.lineTo(gx, gy);
+    bolt.strokePath();
+    this.flashOv.setAlpha(0.7);
+    this.tweens.add({ targets: this.flashOv, alpha: 0, duration: 200 });
+    this.tweens.add({ targets: bolt, alpha: 0, duration: 500, onComplete: () => bolt.destroy() });
+    thunderSnd(0.3);
+    snd(880, 0.3, 'sawtooth', 0.12);
+
+    this.guitarSpr = this.add.image(gx, gy, 'guitar').setScale(S).setOrigin(0.5, 1).setDepth(gy);
+    const glow = this.add.image(gx, gy - 2, 'shadow').setScale(S * 1.5, S).setTint(0xf4d03f).setAlpha(0.7).setDepth(4);
+    this.guitarSpr.glow = glow;
+    this.tweens.add({ targets: this.guitarSpr, y: gy - 8, duration: 450, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.popup(gx, gy - 70, '🎸 ¡¡Una guitarra!!', '#f4d03f');
+
+    // 🎸 la guitarra desaparece pasados GUITAR_STAY_SECONDS
+    this.time.delayedCall(GUITAR_STAY_SECONDS * 1000, () => {
+      if (this.guitarSpr) {
+        this.tweens.add({ targets: [this.guitarSpr, glow], alpha: 0, duration: 400, onComplete: () => {
+          if (this.guitarSpr) { this.guitarSpr.glow.destroy(); this.guitarSpr.destroy(); this.guitarSpr = null; }
+        }});
+      }
+    });
+  }
+
+  pickGuitar() {
+    if (!this.guitarSpr) return;
+    this.guitarSpr.glow.destroy();
+    this.guitarSpr.destroy();
+    this.guitarSpr = null;
+    ST.guitars++;
+    ST.boostUntil = this.time.now + BOOST_SECONDS * 1000; // 🎸 turbo
+    Music.setRock(true);
+    this.time.delayedCall(BOOST_SECONDS * 1000, () => { if (!ST.ended) Music.setRock(false); });
+    this.say('♪ ¡LA CREDENCE! Como cuando María y yo bailamos en la verbena... ¡Rock entre viñas! ♪');
+    this.popup(this.player.x, this.player.y - 110, `🎸 ¡TURBO ROCKERO ${BOOST_SECONDS}s!`, '#f4d03f');
+    // riff de entrada
+    [165, 196, 220, 165, 247, 220, 330].forEach((f, i) => setTimeout(() => snd(f, 0.18, 'sawtooth', 0.14), i * 110));
+  }
+
+  // ---------- tareas con barra de progreso ----------
+  startTask(label, dur, x, y, onDone) {
+    ST.busy = true;
+    const boosted = this.time.now < ST.boostUntil;
+    this.task = { label, dur: boosted ? dur / 1.5 : dur, t: 0, x, y, onDone }; // 🎸 turbo acelera tareas
+    this.taskLabel = this.add.text(x, y - 78, label, {
+      fontFamily: '"Courier New", monospace', fontSize: '14px', fontStyle: 'bold',
+      color: '#fff', stroke: '#000', strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(6500);
+    snd(220, 0.12, 'sawtooth');
+  }
+
+  // ---------- interacciones ----------
+  nearest() {
+    const px = this.player.x, py = this.player.y;
+    const R = 26 * S;
+    const dist = (x, y) => Phaser.Math.Distance.Between(px, py, x, y);
+    let best = null;
+    const consider = (x, y, opt) => {
+      const d = dist(x, y);
+      if (d < R && (!best || d < best.d)) best = { d, x, y, ...opt };
+    };
+
+    // ciervos robando: prioridad
+    for (const deer of this.deerList) {
+      if (deer.state === 'toVine' || deer.state === 'eating') {
+        consider(deer.spr.x, deer.spr.y, { label: `Espantar ciervo (+${DEER_REWARD}€)`, act: () => this.scareDeer(deer) });
+      }
+    }
+
+    for (const v of this.vines) {
+      if (!v.has) continue;
+      if (ST.grapes >= RULES.MAX_GRAPES) consider(v.x, v.y, { deny: 'Cesta llena — lleva las uvas al tanque' });
+      else consider(v.x, v.y, { label: 'Cosechar uvas', act: () => this.harvest(v) });
+    }
+
+    const tk = this.tank;
+    if (ST.grapes > 0) consider(tk.x, tk.y, { label: 'Echar uvas al tanque', act: () => this.deposit() });
+    else if (ST.tank >= RULES.GRAPES_PER_WINE) consider(tk.x, tk.y, { label: 'Fermentar (3 uvas)', act: () => this.ferment() });
+    else consider(tk.x, tk.y, { deny: `Trae uvas al tanque (${ST.tank}/3)` });
+
+    const bt = this.bottler;
+    if (ST.wine <= 0) consider(bt.x, bt.y, { deny: 'No hay vino fermentado' });
+    else if (ST.bottles >= RULES.MAX_BOTTLES) consider(bt.x, bt.y, { deny: 'Manos llenas de botellas' });
+    else consider(bt.x, bt.y, { label: 'Embotellar vino', act: () => this.bottle() });
+
+    const tr = this.truck;
+    if (ST.delivering) consider(tr.x, tr.y, { deny: 'El camión está de reparto...' });
+    else if (ST.bottles > 0) consider(tr.x, tr.y, { label: 'Cargar el camión', act: () => this.deliver() });
+    else consider(tr.x, tr.y, { deny: 'Trae botellas para el camión' });
+
+    return best;
+  }
+
+  interact() {
+    if (ST.busy || !ST.started || ST.ended) return;
+    const n = this.nearest();
+    if (n && n.act) n.act();
+    else if (n && n.deny) snd(140, 0.1, 'sawtooth', 0.08);
+  }
+
+  harvest(v) {
+    v.has = false;
+    v.spr.setTexture('vine_empty');
+    ST.grapes++;
+    this.bounce(v.spr);
+    this.popup(v.x, v.y - 60, '+1 uva 🍇');
+    chord([523, 659]);
+    this.time.delayedCall(RULES.REGROW, () => { v.has = true; v.spr.setTexture('vine_full'); this.bounce(v.spr); });
+    this.updateUI();
+  }
+
+  deposit() {
+    const n = ST.grapes;
+    ST.tank += n; ST.grapes = 0;
+    this.bounce(this.tank);
+    this.popup(this.tank.x, this.tank.y - 100, `+${n} al tanque`);
+    chord([440, 554]);
+    this.updateUI();
+    if (ST.tank >= RULES.GRAPES_PER_WINE) this.ferment();
+  }
+
+  ferment() {
+    this.startTask('Fermentando...', 3200, this.tank.x, this.tank.y, () => {
+      ST.tank -= RULES.GRAPES_PER_WINE;
+      ST.wine++;
+      this.bounce(this.tank);
+      this.popup(this.tank.x, this.tank.y - 100, '+1 vino 🍷', '#c39bd3');
+      chord([392, 494, 587]);
+      this.updateUI();
+    });
+  }
+
+  bottle() {
+    this.startTask('Embotellando...', 2200, this.bottler.x, this.bottler.y, () => {
+      ST.wine--;
+      ST.bottles++;
+      this.bounce(this.bottler);
+      this.popup(this.bottler.x, this.bottler.y - 90, '+1 botella 🍾', '#a9dfbf');
+      chord([523, 659, 784]);
+      this.updateUI();
+      this.showBottles();
+    });
+  }
+
+  deliver() {
+    const n = ST.bottles;
+    this.startTask('Cargando camión...', 1400, this.truck.x, this.truck.y, () => {
+      ST.bottles = 0;
+      ST.delivered += n;
+      const gain = n * RULES.PRICE;
+      ST.money += gain;
+      this.popup(this.truck.x, this.truck.y - 90, `+${gain}€ 💰`, '#f9e79f');
+      chord([523, 659, 784, 1047], 60);
+      this.updateUI();
+      if (!ST.ended) this.say('Ala, otra semana conseguida: esta noche estrellas, mañana visita y listo.');
+
+      ST.delivering = true;
+      if (this.truck.blockBody) this.truck.blockBody.body.enable = false;
+      const tx = this.truck.x;
+      this.tweens.add({
+        targets: this.truck, x: tx + 600, duration: 1900, ease: 'Sine.easeIn',
+        onComplete: () => {
+          this.time.delayedCall(1600, () => {
+            this.tweens.add({
+              targets: this.truck, x: tx, duration: 1900, ease: 'Sine.easeOut',
+              onComplete: () => {
+                ST.delivering = false;
+                if (this.truck.blockBody) this.truck.blockBody.body.enable = true;
+              },
+            });
+          });
+        },
+      });
+    });
+  }
+
+  showBottles() {
+    const c = this.add.container(this.scale.width / 2, this.scale.height / 2).setScrollFactor(0).setDepth(9000);
+    const g = this.add.graphics();
+    g.fillStyle(0x2a1810, 0.96).fillRect(-195, -120, 390, 240);
+    g.lineStyle(4, 0xf4d03f).strokeRect(-195, -120, 390, 240);
+    c.add(g);
+    c.add(this.add.text(0, -92, 'EL FAVORITO DE BAAL', {
+      fontFamily: '"Courier New", monospace', fontSize: '20px', fontStyle: 'bold', color: '#f4d03f',
+    }).setOrigin(0.5));
+    c.add(this.add.text(0, -68, '— Reserva de la casa —', {
+      fontFamily: '"Courier New", monospace', fontSize: '13px', color: '#d9a066',
+    }).setOrigin(0.5));
+    for (const ox of [-85, 0, 85]) c.add(this.add.image(ox, 28, 'bottle_big').setScale(3));
+    c.add(this.add.text(0, 104, `🍾 x${ST.bottles} listas — ¡al tractor!`, {
+      fontFamily: '"Courier New", monospace', fontSize: '13px', fontStyle: 'bold', color: '#fff',
+    }).setOrigin(0.5));
+    c.setScale(0.6).setAlpha(0);
+    this.tweens.add({ targets: c, scale: 1, alpha: 1, duration: 220, ease: 'Back.easeOut' });
+    this.time.delayedCall(2800, () => {
+      this.tweens.add({ targets: c, alpha: 0, scale: 0.8, duration: 250, onComplete: () => c.destroy() });
+    });
+  }
+
+  // ---------- fin de partida (victoria 10B / derrota) ----------
+  endGame(win) {
+    if (ST.ended) return;
+    ST.ended = true;
+    Music.stop();
+    if (win) chord([523, 659, 784, 1047, 1319], 90);
+    else { snd(196, 0.5, 'sawtooth', 0.15); setTimeout(() => snd(147, 0.8, 'sawtooth', 0.15), 400); }
+
+    const t = document.getElementById('end-title');
+    const m = document.getElementById('end-msg');
+    t.textContent = win ? '🏆 ¡VICTORIA!' : '💀 GAME OVER';
+    t.className = win ? 'win' : 'lose';
+    m.textContent = win
+      ? '"Ala, otra semana conseguida: esta noche estrellas, mañana visita y listo." — BAAL está satisfecho.'
+      : 'Vete a comer pollo con repollo.';
+
+    document.getElementById('end-stats').innerHTML =
+      `💰 Dinero: <b>${ST.money}€</b> / ${GOAL_MONEY}€<br>` +
+      `🍾 Botellas entregadas: <b>${ST.delivered}</b><br>` +
+      `🦌 Ciervos espantados: <b>${ST.deerScared}</b><br>` +
+      `🎸 Guitarras cogidas: <b>${ST.guitars}</b>`;
+
+    // récord local (7A)
+    const prev = Number(localStorage.getItem('baal_record') || 0);
+    const recEl = document.getElementById('end-record');
+    if (ST.money > prev) {
+      localStorage.setItem('baal_record', String(ST.money));
+      recEl.innerHTML = '<span class="newrecord">🎉 ¡NUEVO RÉCORD PERSONAL!</span>';
+    } else {
+      recEl.textContent = `🏆 Tu mejor vendimia: ${Math.max(prev, ST.money)}€`;
+    }
+
+    // marcador global (Google Sheets)
+    const lb = document.getElementById('end-lb');
+    if (LEADERBOARD_URL) {
+      lb.innerHTML = `<input id="lb-name" maxlength="20" placeholder="Tu nombre"> <button id="lb-send">Enviar 🌐</button><div id="lb-list"></div>`;
+      document.getElementById('lb-send').addEventListener('click', async () => {
+        const name = document.getElementById('lb-name').value.trim() || 'Anónimo';
+        document.getElementById('lb-send').disabled = true;
+        document.getElementById('lb-list').textContent = 'Enviando...';
+        await sendScore(name);
+        const scores = await loadScores();
+        document.getElementById('lb-list').innerHTML = scores
+          ? '<ol>' + scores.map(s => `<li>${String(s.name).slice(0, 20)} — <b>${s.score}€</b></li>`).join('') + '</ol>'
+          : 'No se pudo cargar el marcador.';
+      });
+    } else {
+      lb.innerHTML = '<div class="note">💡 Marcador global no configurado — mira leaderboard-apps-script.js</div>';
+    }
+
+    document.getElementById('end').classList.add('show');
+    this.time.delayedCall(400, () => this.scene.pause());
+  }
+
+  // ---------- HUD / objetivo ----------
+  updateUI() {
+    document.getElementById('h-grapes').textContent = ST.grapes;
+    document.getElementById('h-tank').textContent = ST.tank;
+    document.getElementById('h-wine').textContent = ST.wine;
+    document.getElementById('h-bottles').textContent = ST.bottles;
+    document.getElementById('h-money').textContent = ST.money;
+
+    let obj;
+    if (ST.bottles > 0) obj = 'Lleva las botellas al camión 🚚';
+    else if (ST.wine > 0) obj = 'Embotella el vino en la máquina 🍾';
+    else if (ST.tank >= RULES.GRAPES_PER_WINE) obj = 'Fermenta las uvas en el tanque 🛢️';
+    else if (ST.grapes > 0) obj = 'Lleva las uvas al tanque de la bodega 🛢️';
+    else obj = 'Cosecha uvas en el viñedo 🍇';
+    document.getElementById('obj').textContent = obj;
+
+    // 💰 victoria inmediata al alcanzar el objetivo (10B)
+    if (ST.started && !ST.ended && ST.money >= GOAL_MONEY) this.endGame(true);
+  }
+
+  // ---------- bucle principal ----------
+  update(time, delta) {
+    const p = this.player;
+
+    // ⏱️ cuenta atrás
+    if (ST.started && !ST.ended) {
+      const left = Math.max(0, ST.endAt - time);
+      const mm = Math.floor(left / 60000), ss = Math.floor((left % 60000) / 1000);
+      document.getElementById('h-time').textContent = `${mm}:${String(ss).padStart(2, '0')}`;
+      document.getElementById('chip-time').classList.toggle('danger', left < 60000);
+      if (left <= 0) { this.endGame(ST.money >= GOAL_MONEY); return; }
+    }
+
+    // tareas en curso
+    this.taskBar.clear();
+    if (this.task) {
+      this.task.t += delta;
+      const pr = Math.min(1, this.task.t / this.task.dur);
+      const bx = this.task.x - 42, by = this.task.y - 66;
+      this.taskBar.fillStyle(0x000000, 0.7).fillRect(bx - 2, by - 2, 88, 12);
+      this.taskBar.fillStyle(0xf4d03f, 1).fillRect(bx, by, 84 * pr, 8);
+      if (pr >= 1) {
+        const done = this.task.onDone;
+        this.task = null;
+        if (this.taskLabel) { this.taskLabel.destroy(); this.taskLabel = null; }
+        ST.busy = false;
+        done();
+      }
+    }
+
+    // movimiento: teclado + joystick táctil
+    let vx = 0, vy = 0;
+    if (ST.started && !ST.ended && !ST.busy) {
+      if (this.cursors.left.isDown || this.wasd.A.isDown) vx = -1;
+      if (this.cursors.right.isDown || this.wasd.D.isDown) vx = 1;
+      if (this.cursors.up.isDown || this.wasd.W.isDown) vy = -1;
+      if (this.cursors.down.isDown || this.wasd.S.isDown) vy = 1;
+      if (!vx && !vy && (this.joyX || this.joyY)) { vx = this.joyX; vy = this.joyY; }
+    }
+    const mag = Math.hypot(vx, vy);
+    if (mag > 1) { vx /= mag; vy /= mag; }
+
+    // tractor cuando lleva botellas + 🎸 turbo rockero
+    const riding = ST.bottles > 0;
+    const boosted = time < ST.boostUntil;
+    if (riding !== this.riding) {
+      this.riding = riding;
+      if (riding) p.body.setSize(20, 6).setOffset(6, 18);
+      else p.body.setSize(14, 6).setOffset(7, 40);
+    }
+    const spd = SPEED * (riding ? 1.3 : 1) * (boosted ? 1.5 : 1);
+    p.body.setVelocity(vx * spd, vy * spd);
+    if (boosted) p.setTint(0xfff0a0); else p.clearTint();
+
+    const moving = vx !== 0 || vy !== 0;
+    if (moving) {
+      if (Math.abs(vx) >= Math.abs(vy)) this.dir = vx > 0 ? 'e' : 'w';
+      else this.dir = vy > 0 ? 's' : 'n';
+      this.walkT += delta;
+    } else {
+      this.walkT = 0;
+    }
+
+    if (riding) {
+      if (this.dir === 'e') this.rideFlip = false;
+      if (this.dir === 'w') this.rideFlip = true;
+      if (p.texture.key !== 'tractor_side') p.setTexture('tractor_side');
+      p.setFlipX(this.rideFlip);
+      if (p.scaleX !== S) p.setScale(S);
+      this.playerShadow.setScale(S * 2.2, S);
+    } else {
+      const texDir = this.dir === 'w' ? 'e' : this.dir;
+      const frame = moving && Math.floor(this.walkT / 160) % 2 === 0 ? 'walk' : 'idle';
+      const key = `alex_${texDir}_${frame}`;
+      if (p.texture.key !== key) p.setTexture(key);
+      p.setFlipX(this.dir === 'w');
+      if (p.scaleX !== PS) p.setScale(PS);
+      this.playerShadow.setScale(S * 1.3, S);
+    }
+
+    p.setDepth(p.y);
+    this.playerShadow.setPosition(p.x, p.y - 2);
+
+    // ciervos y NPCs: profundidad + etiquetas + frases al cruzarse
+    for (const d of this.deerList) {
+      d.spr.setDepth(d.spr.y);
+      if (d.label) d.label.setPosition(d.spr.x, d.spr.y - 50);
+    }
+    for (const npc of this.npcs) {
+      npc.spr.setDepth(npc.spr.y);
+      if (!npc.said && Math.abs(npc.spr.x - p.x) < 260 && Math.abs(npc.spr.y - p.y) < 220) {
+        npc.said = true;
+        npc.label = this.add.text(npc.spr.x, npc.spr.y - 70, Phaser.Utils.Array.GetRandom(npc.phrases), {
+          fontFamily: '"Courier New", monospace', fontSize: '12px', fontStyle: 'bold',
+          color: '#2a1810', backgroundColor: '#d6ebf5', padding: { x: 8, y: 5 },
+          wordWrap: { width: 210 }, align: 'center',
+        }).setOrigin(0.5, 1).setDepth(8000);
+        this.time.delayedCall(4500, () => { if (npc.label) { npc.label.destroy(); npc.label = null; } });
+      }
+      if (npc.label) npc.label.setPosition(npc.spr.x, npc.spr.y - 70);
+    }
+
+    // recoger guitarra por proximidad
+    if (this.guitarSpr && Phaser.Math.Distance.Between(p.x, p.y, this.guitarSpr.x, this.guitarSpr.y) < 55) {
+      this.pickGuitar();
+    }
+
+    // indicadores de carga + bocadillo
+    const bob = Math.sin(time / 220) * 2;
+    const headH = riding ? 24 * S : 46 * PS;
+    const topY = p.y - headH - 14 + bob;
+    if (this.bubble) this.bubble.setPosition(p.x, p.y - headH - 34);
+
+    if (ST.grapes > 0) {
+      this.carryG.setVisible(true).setPosition(p.x - (ST.bottles > 0 ? 30 : 14), topY);
+      this.carryGText.setVisible(true).setText('x' + ST.grapes).setPosition(this.carryG.x + 10, topY);
+    } else { this.carryG.setVisible(false); this.carryGText.setVisible(false); }
+    if (ST.bottles > 0) {
+      this.carryB.setVisible(true).setPosition(p.x + (ST.grapes > 0 ? 14 : -12), topY);
+      this.carryBText.setVisible(true).setText('x' + ST.bottles).setPosition(this.carryB.x + 9, topY);
+    } else { this.carryB.setVisible(false); this.carryBText.setVisible(false); }
+
+    this.tankLabel.setText(`🍇 ${ST.tank}/3`);
+
+    // prompt de acción + botón táctil
+    const prompt = document.getElementById('prompt');
+    const ptext = document.getElementById('ptext');
+    const btn = document.getElementById('actbtn');
+    const n = ST.started && !ST.ended && !ST.busy ? this.nearest() : null;
+    if (n) {
+      prompt.classList.add('show');
+      prompt.classList.toggle('deny', !n.act);
+      ptext.textContent = n.act ? n.label : n.deny;
+      btn.classList.toggle('ready', !!n.act);
+      btn.textContent = n.act ? '⚡' : '✋';
+    } else {
+      prompt.classList.remove('show');
+      btn.classList.remove('ready');
+      btn.textContent = '✋';
+    }
+  }
+}
+
+// ---------------------------------------------------------------------
+window.game = new Phaser.Game({
+  type: Phaser.AUTO,
+  parent: 'game',
+  backgroundColor: '#79a648',
+  pixelArt: true,
+  roundPixels: true,
+  scale: { mode: Phaser.Scale.RESIZE, width: window.innerWidth, height: window.innerHeight },
+  physics: { default: 'arcade' },
+  scene: [Main],
+});
+</script>
+</body>
+</html>
