@@ -1082,7 +1082,7 @@ class Main extends Phaser.Scene {
       this.deerList.push(deer);
       this.tweens.add({ targets: spr, x: fromLeft ? WORLD.w + 90 : -90, duration: 6000,
         onComplete: () => this.removeDeer(deer) });
-      this.say('¡¡Malditos Fujis!!');
+      this.say('¡¡Malditos Fugis!!');
       return;
     }
 
@@ -1111,7 +1111,7 @@ class Main extends Phaser.Scene {
         }});
       },
     });
-    this.say('¡¡Malditos Fujis!!');
+    this.say('¡¡Malditos Fugis!!');
     snd(160, 0.15, 'sawtooth', 0.1);
   }
 
@@ -1131,7 +1131,7 @@ class Main extends Phaser.Scene {
     ST.money += DEER_REWARD;
     ST.deerScared++;
     this.popup(deer.spr.x, deer.spr.y - 60, `+${DEER_REWARD}€ 🦌`, '#f9e79f');
-    this.say('¡¡Malditos Fujis!!');
+    this.say('¡¡Malditos Fugis!!');
     chord([659, 523]);
     this.deerFlee(deer);
     this.updateUI();
