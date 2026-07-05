@@ -632,9 +632,15 @@ const PHRASES = [
   'Oh María, luz de mi bodega: sin ti hasta el reserva se me avinagra.',
   'María, eres el roble de mi barrica y la burbuja de mi copa.',
   'Para María: tu risa es la única cosecha que no me falla ningún año.',
+  // picantes (doble sentido vinícola, aptas para todos los públicos)
+  'María, esta noche descorcho yo... y no hablo precisamente de una botella.',
+  'A María le gusta el vino con cuerpo. A mí me pasa lo mismo con ella.',
+  'María dice que tengo buena uva. Yo le contesto que ella tiene mejor barrica.',
+  'Lo nuestro, María, es como el reserva: mejora a oscuras y en silencio.',
+  'María, contigo la fermentación siempre es tumultuosa.',
 ];
 // pool ponderado: el índice 1 (Bruno) aparece 3 veces
-const PHRASE_POOL = [0, 1, 1, 1, 2, 3, 4, 5, 6];
+const PHRASE_POOL = [0, 1, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
 const ISABEL_PHRASES = [
   '¡Soy Isabel! Fuji, ese tractor mete más ruido que mi suegra en Nochebuena.',
@@ -1041,7 +1047,8 @@ class Main extends Phaser.Scene {
   }
 
   say(text) {
-    if (this.bubble) { this.bubble.destroy(); if (this.bubbleTimer) this.bubbleTimer.remove(); }
+    // No se pisa una frase a la anterior: si Alex sigue hablando (bocadillo o voz), se descarta
+    if (this.bubble || ('speechSynthesis' in window && (speechSynthesis.speaking || speechSynthesis.pending))) return;
     this.bubble = this.add.text(this.player.x, this.player.y, text, {
       fontFamily: '"Courier New", monospace', fontSize: '13px', fontStyle: 'bold',
       color: '#2a1810', backgroundColor: '#f8f4e8', padding: { x: 9, y: 6 },
@@ -1408,26 +1415,21 @@ class Main extends Phaser.Scene {
   }
 
   showBottles() {
-    const c = this.add.container(this.scale.width / 2, this.scale.height / 2).setScrollFactor(0).setDepth(9000);
-    const g = this.add.graphics();
-    g.fillStyle(0x2a1810, 0.96).fillRect(-195, -120, 390, 240);
-    g.lineStyle(4, 0xf4d03f).strokeRect(-195, -120, 390, 240);
-    c.add(g);
-    c.add(this.add.text(0, -92, 'EL FAVORITO DE BAAL', {
-      fontFamily: '"Courier New", monospace', fontSize: '20px', fontStyle: 'bold', color: '#f4d03f',
-    }).setOrigin(0.5));
-    c.add(this.add.text(0, -68, '— Reserva de la casa —', {
-      fontFamily: '"Courier New", monospace', fontSize: '13px', color: '#d9a066',
-    }).setOrigin(0.5));
-    for (const ox of [-85, 0, 85]) c.add(this.add.image(ox, 28, 'bottle_big').setScale(3));
-    c.add(this.add.text(0, 104, `🍾 x${ST.bottles} listas — ¡al tractor!`, {
-      fontFamily: '"Courier New", monospace', fontSize: '13px', fontStyle: 'bold', color: '#fff',
-    }).setOrigin(0.5));
-    c.setScale(0.6).setAlpha(0);
-    this.tweens.add({ targets: c, scale: 1, alpha: 1, duration: 220, ease: 'Back.easeOut' });
-    this.time.delayedCall(2800, () => {
-      this.tweens.add({ targets: c, alpha: 0, scale: 0.8, duration: 250, onComplete: () => c.destroy() });
-    });
+    // 3 botellitas que saltan de la embotelladora, estilo moneda de Super Mario
+    for (let i = 0; i < 3; i++) {
+      this.time.delayedCall(i * 150, () => {
+        const bx = this.bottler.x + (i - 1) * 30;
+        const b = this.add.image(bx, this.bottler.y - 55, 'bottle_big').setScale(1.7).setDepth(7000);
+        snd(784 + i * 120, 0.09, 'square', 0.1); // "clink" ascendente tipo moneda
+        this.tweens.add({
+          targets: b, y: b.y - 75, duration: 420, ease: 'Quad.easeOut',
+          onComplete: () => this.tweens.add({
+            targets: b, y: b.y + 22, alpha: 0, duration: 380, ease: 'Quad.easeIn',
+            onComplete: () => b.destroy(),
+          }),
+        });
+      });
+    }
   }
 
   // ---------- fin de partida (victoria 10B / derrota) ----------
