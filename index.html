@@ -249,10 +249,12 @@ if ('speechSynthesis' in window) {
   speechSynthesis.onvoiceschanged = pickVoice;
   pickVoice();
 }
+let speechStart = 0;
 function speak(text) {
-  if (voiceMuted || !('speechSynthesis' in window)) return;
+  if (!text || voiceMuted || !('speechSynthesis' in window)) return;
   try {
     speechSynthesis.cancel(); // corta la frase anterior si sigue sonando
+    speechStart = Date.now();
     const u = new SpeechSynthesisUtterance(text.replace(/[♪]/g, ''));
     u.lang = 'es-ES';
     if (voiceES) u.voice = voiceES;
@@ -636,8 +638,10 @@ const PHRASES = [
   'María, esta noche descorcho yo... ',
 
 ];
-// pool ponderado: el índice 1 (Bruno) aparece 3 veces
-const PHRASE_POOL = [0, 1, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+// pool ponderado que se genera SOLO a partir de la lista de arriba:
+// puedes añadir o quitar frases sin tocar nada más.
+// La de Bruno (índice 1) entra 2 veces extra para que salga el triple.
+const PHRASE_POOL = PHRASES.map((_, i) => i).concat([1, 1]);
 
 const ISABEL_PHRASES = [
   '¡Soy Isabel! Fuji, ese tractor mete más ruido que mi suegra en Nochebuena.',
@@ -1044,8 +1048,14 @@ class Main extends Phaser.Scene {
   }
 
   say(text) {
+    if (!text) return; // ignora frases vacías o inexistentes
     // No se pisa una frase a la anterior: si Alex sigue hablando (bocadillo o voz), se descarta
-    if (this.bubble || ('speechSynthesis' in window && (speechSynthesis.speaking || speechSynthesis.pending))) return;
+    if ('speechSynthesis' in window && (speechSynthesis.speaking || speechSynthesis.pending)) {
+      // en móvil la voz puede quedarse "atascada"; si lleva >15s, la cortamos
+      if (Date.now() - speechStart > 15000) speechSynthesis.cancel();
+      else return;
+    }
+    if (this.bubble) return;
     this.bubble = this.add.text(this.player.x, this.player.y, text, {
       fontFamily: '"Courier New", monospace', fontSize: '13px', fontStyle: 'bold',
       color: '#2a1810', backgroundColor: '#f8f4e8', padding: { x: 9, y: 6 },
