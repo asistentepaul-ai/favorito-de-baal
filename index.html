@@ -141,7 +141,7 @@ canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
 // ╔═══════════════════════════════════════════════════════════════════╗
 // ║  ⚙️  AJUSTES RÁPIDOS DE LA PARTIDA — toca estos números y listo   ║
 // ╚═══════════════════════════════════════════════════════════════════╝
-const GAME_MINUTES = 5;        // ⏱️  MINUTOS de partida (cuenta atrás)
+const GAME_MINUTES = 2.5;      // ⏱️  MINUTOS de partida (cuenta atrás)
 const GOAL_MONEY = 100;        // 💰 OBJETIVO de dinero para ganar
 const GUITAR_STAY_SECONDS = 12; // 🎸 segundos que la guitarra espera en el suelo
                                 //    (pediste 1.5 pero es imposible llegar a tiempo;
@@ -1024,6 +1024,9 @@ class Main extends Phaser.Scene {
     if (ST.started) return;
     ST.started = true;
     ST.endAt = this.time.now + GAME_MINUTES * 60 * 1000; // ⏱️ aquí arranca la cuenta atrás
+    // pinta el tiempo inicial en el HUD según GAME_MINUTES (admite decimales, ej. 2.5 → 2:30)
+    document.getElementById('h-time').textContent =
+      `${Math.floor(GAME_MINUTES)}:${String(Math.round((GAME_MINUTES % 1) * 60)).padStart(2, '0')}`;
     document.getElementById('title').classList.add('hidden');
     document.getElementById('hud').classList.add('show');
     document.getElementById('objective').classList.add('show');
